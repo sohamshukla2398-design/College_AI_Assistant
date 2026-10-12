@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>College AI Assistant</title>
+</head>
+<body>
+
+    <h1>College AI Assistant</h1>
+
+    <h3>Upload Document (PDF, DOCX, TXT)</h3>
+
+    <input type="file" id="file" accept=".pdf,.docx,.txt">
+    <button onclick="uploadDocument()">Upload Document</button>
+    <p id="uploadStatus"></p>
+
+    <hr>
+
+    <h3>Ask a Question</h3>
+
+    <input type="text" id="message" placeholder="Ask something...">
+    <button onclick="sendMessage()">Send</button>
+
+    <h3>Response:</h3>
+    <p id="response"></p>
+
+    <h3>Tool Used:</h3>
+    <p id="tool"></p>
+
+    <script>
+        let uploadedDocumentContent = "";
+
+        async function uploadDocument() {
+            const fileInput = document.getElementById("file");
+            const status = document.getElementById("uploadStatus");
+
+            if (!fileInput.files.length) {
+                status.innerText = "Please select a file first.";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            status.innerText = "Uploading...";
+            uploadedDocumentContent = "";
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    status.innerText = data.error || "Upload failed.";
+                    return;
+                }
+
+                uploadedDocumentContent = data.content;
+                status.innerText = data.message;
+            } catch (error) {
+                status.innerText = "Upload failed. Check the server.";
+            }
+        }
+
+        async function sendMessage() {
+            const message = document.getElementById("message").value.trim();
+
+            if (!message) {
+                document.getElementById("response").innerText =
+                    "Please enter a question.";
+                return;
+            }
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        document_content: uploadedDocumentContent
+                    })
+                });
+
+                const data = await response.json();
+
+                document.getElementById("response").innerText =
+                    data.response;
+
+                document.getElementById("tool").innerText =
+                    data.tool_used;
+            } catch (error) {
+                document.getElementById("response").innerText =
+                    "Request failed. Check the server.";
+            }
+        }
+    </script>
+
+</body>
+</html>
